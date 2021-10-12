@@ -1,0 +1,98 @@
+﻿#!/bin/bash
+set -eu
+cd /opt/cftools/omega-manager
+echo -e "=== OmegaManager Setup ===\n"
+
+STEAM_CMD_DAYZ_DIR="/opt/cftools/omega-manager/steamcmd/omegamanager"
+DEPLOY_DIR="/opt/cftools/omega-manager/deploy"
+OMEGA_BIN="/opt/cftools/omega-manager/OmegaManager"
+TEMPLATE_PATH="/opt/cftools/omega-manager/.internal/.template_manager.cfg"
+CONF_TARGET="/opt/cftools/omega-manager/conf/manager.cfg"
+
+if [ -f "$CONF_TARGET" ]; then
+        echo "OmegaManager already seems to be set up."
+        echo "Continuing will overwrite the existing config."
+        echo "Press CTRL+C to abort or enter to continue."
+        read -s
+        echo ""
+fi
+
+BINDALL="true"
+WEBPORT="443"
+USEAUTH="false"
+
+echo "Please enter your Steam username:"
+read USERNAME
+echo ""
+
+echo "Please enter your Steam password:"
+read -s PASSWORD
+echo ""
+
+echo "Please enter your Steam API Key:"
+read -s APIKEY
+echo ""
+
+while : ; do
+        echo "Are you using Steam Guard with mobile authentication? (y/n):"
+        read MOBILEAUTH_STR
+        echo ""
+        [[ $MOBILEAUTH_STR = "y" ]] && MOBILEAUTH="true" && break
+        [[ $MOBILEAUTH_STR = "n" ]] && MOBILEAUTH="false" && break
+done
+
+while : ; do
+        echo "Do you want to use DayZ Experimental? (y/n):"
+        read EXPERIMENTAL_STR
+        echo ""
+        [[ $EXPERIMENTAL_STR = "y" ]] && EXPERIMENTAL="true" && break
+        [[ $EXPERIMENTAL_STR = "n" ]] && EXPERIMENTAL="false" && break
+done
+
+echo "Writing config..."
+jq \
+        --arg username "$USERNAME" \
+        --arg password "$PASSWORD" \
+        --arg apikey "$APIKEY" \
+        --argjson mobileauth "$MOBILEAUTH" \
+        --argjson experimental "$EXPERIMENTAL" \
+        --argjson bindall "$BINDALL" \
+        --argjson webport "$WEBPORT" \
+        --argjson useauth "$USEAUTH" \
+        '
+                .steam.username = $username |
+                .steam.password = $password |
+                .steam.api_key = $apikey |
+                .steam.mobile_authenticator = $mobileauth |
+                .updater.experimental = $experimental |
+                .webserver.port = $webport |
+                .webserver.internet_accessibility |= $bindall |
+                .webserver.authentication |= $useauth
+        '\
+        $TEMPLATE_PATH > $CONF_TARGET
+echo "The configuration was written."
+echo ""
+
+# Generate machine-id if not present
+if [ ! -f conf/machine-id ]; then
+        echo "Writing machine id..."
+        MACHINEID=$(hexdump -n 16 -e '4/4 "%08X" 1 "\n"' /dev/urandom)
+        echo -e "${MACHINEID}\n" > conf/machine-id
+        echo "The machine id was written."
+        echo ""
+fi
+
+# Setup steamcmd symlinks to fix an Omega bug
+echo "Preparing SteamCMD..."
+rm -rf ${STEAM_CMD_DAYZ_DIR:?}
+ln -s -T $DEPLOY_DIR $STEAM_CMD_DAYZ_DIR
+echo "Done."
+echo ""
+
+echo "Omega Manager will now perform the initial setup. You may be asked to enter a Steam Guard code."
+echo "This process may take a while."
+echo "You can exit (CTRL+C) the setup once you see the message '[INFO] | OmegaManagerWEB running on 0.0.0.0:443'."
+echo ""
+echo "Press enter to start."
+read -s
+$OMEGA_BIN

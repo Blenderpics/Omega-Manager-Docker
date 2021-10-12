@@ -1,0 +1,23 @@
+﻿version: "3.9"
+
+services:
+  omega:
+    build: ./container/omega/build
+    volumes:
+      - ./container/omega/conf:/opt/cftools/omega-manager/conf
+      - ./container/omega/data/changelists:/opt/cftools/omega-manager/changelists
+      - ./container/omega/data/deploy:/opt/cftools/omega-manager/deploy
+      - ./container/omega/data/logs:/opt/cftools/omega-manager/logs
+      - ./container/omega/data/servers:/opt/cftools/omega-manager/servers
+      - ./container/omega/data/workshopdeploy:/opt/cftools/omega-manager/workshopdeploy
+      - ./container/omega/data/steamcmd:/opt/cftools/omega-manager/steamcmd
+    ports:
+      - "2302:2302/tcp"
+      - "2304:2304/tcp"
+      - "2305:2305/tcp"
+      - "27016:27016/tcp"
+      - "2302:2302/udp"
+      - "2304:2304/udp"
+      - "2305:2305/udp"
+      - "27016:27016/udp"
+      - "127.0.0.1:8443:443"

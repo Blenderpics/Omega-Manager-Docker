@@ -7,7 +7,7 @@ RUN     apk add --no-cache wget && \
 FROM ubuntu:20.04
 RUN     apt-get update && \
         `# SteamCMD dependencies` \
-        apt-get install -y ca-certificates locales lib32gcc-s1 && \
+        apt-get install -y ca-certificates locales lib32gcc-s1 apt-utils && \
         `# Container dependencies` \
         apt-get install -y sed bash jq bsdmainutils && \
         `# OmegaManager dependencies` \
